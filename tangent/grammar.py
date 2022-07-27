@@ -15,7 +15,7 @@
 from __future__ import absolute_import
 import gast
 
-LITERALS = (gast.Num, gast.Str, gast.Bytes, gast.Ellipsis, gast.NameConstant)
+LITERALS = (gast.Constant,)
 
 CONTROL_FLOW = (gast.For, gast.AsyncFor, gast.While, gast.If, gast.Try,
                 gast.Break, gast.Continue)

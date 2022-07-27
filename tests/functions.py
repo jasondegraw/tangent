@@ -477,31 +477,31 @@ def det(sqm):
 
 
 def tfe_negative(t):
-  return tf.negative(t)
+  return tf.math.negative(t)
 
 
 def tfe_exp(t):
-  return tf.exp(t)
+  return tf.math.exp(t)
 
 
 def tfe_log(t):
-  return tf.log(t)
+  return tf.math.log(t)
 
 
 def tfe_tanh(t):
-  return tf.tanh(t)
+  return tf.math.tanh(t)
 
 
 def tfe_cosh(t):
-  return tf.cosh(t)
+  return tf.math.cosh(t)
 
 
 def tfe_sinh(t):
-  return tf.sinh(t)
+  return tf.math.sinh(t)
 
 
 def tfe_rsqrt(t):
-  return tf.rsqrt(t)
+  return tf.math.rsqrt(t)
 
 
 def tfe_expand_dims_before(t):
@@ -530,67 +530,67 @@ def tfe_reshape_noop(t):
 
 
 def tfe_reduce_sum(timage, boolean):
-  return tf.reduce_sum(timage, None, boolean)
+  return tf.math.reduce_sum(timage, None, boolean)
 
 
 def tfe_reduce_sum_axis(timage, boolean):
-  return tf.reduce_sum(timage, [0, 1, 2], boolean)
+  return tf.math.reduce_sum(timage, [0, 1, 2], boolean)
 
 
 def tfe_reduce_mean(timage, boolean):
-  return tf.reduce_mean(timage, None, boolean)
+  return tf.math.reduce_mean(timage, None, boolean)
 
 
 def tfe_reduce_mean_axis(timage, boolean):
-  return tf.reduce_mean(timage, [0, 1, 2], boolean)
+  return tf.math.reduce_mean(timage, [0, 1, 2], boolean)
 
 
 def tfe_reduce_max(timage, boolean):
-  return tf.reduce_max(timage, None, boolean)
+  return tf.math.reduce_max(timage, None, boolean)
 
 
 def tfe_reduce_max_axis(timage, boolean):
-  return tf.reduce_max(timage, [0, 1, 2], boolean)
+  return tf.math.reduce_max(timage, [0, 1, 2], boolean)
 
 
 def tfe_add(t1, t2):
-  return tf.add(t1, t2)
+  return tf.math.add(t1, t2)
 
 
 def tfe_add_bcast(s, t):
-  return tf.add(s, t)
+  return tf.math.add(s, t)
 
 
 def tfe_subtract(t1, t2):
-  return tf.subtract(t1, t2)
+  return tf.math.subtract(t1, t2)
 
 
 def tfe_multiply(t1, t2):
-  return tf.multiply(t1, t2)
+  return tf.math.multiply(t1, t2)
 
 
 def tfe_divide(t1, t2):
-  return tf.divide(t1, t2)
+  return tf.math.divide(t1, t2)
 
 
 def tfe_maximum(t1, t2):
-  return tf.maximum(t1, t2)
+  return tf.math.maximum(t1, t2)
 
 
 def tfe_squared_difference(t1, t2):
-  return tf.squared_difference(t1, t2)
+  return tf.math.squared_difference(t1, t2)
 
 
 def tfe_matmul(mat1, mat2, boolean1, boolean2):
-  return tf.matmul(mat1, mat2, transpose_a=boolean1, transpose_b=boolean2)
+  return tf.linalg.matmul(mat1, mat2, transpose_a=boolean1, transpose_b=boolean2)
 
 
 def tfe_matmul_highdim(timage1, timage2, boolean1, boolean2):
-  return tf.matmul(timage1, timage2, transpose_a=boolean1, transpose_b=boolean2)
+  return tf.linalg.matmul(timage1, timage2, transpose_a=boolean1, transpose_b=boolean2)
 
 
 def tfe_conv2d(timage, tkernel, conv2dstrides):
-  return tf.nn.conv2d(timage, tkernel, conv2dstrides, 'SAME')
+  return tf.compat.v1.nn.conv2d(timage, tkernel, conv2dstrides, 'SAME')
 
 
 def tfe_max_pool(timage, pool2dsizes, conv2dstrides):
@@ -608,7 +608,7 @@ def tfe_avg_pool(timage, pool2dsizes, conv2dstrides):
 
 @tangent.trace
 def _trace_mul(a, b):
-  out = tf.multiply(a, b)
+  out = tf.math.multiply(a, b)
   c = 3
   del c  # invalid Tangent syntax, but invisible to tracing
   return out
@@ -616,18 +616,18 @@ def _trace_mul(a, b):
 
 def tfe_trace_fn(t):
   out = _trace_mul(t, t)
-  result = tf.reduce_sum(out)
+  result = tf.math.reduce_sum(out)
   return result
 
 
 def _nontrace_mul(a, b):
-  out = tf.multiply(a, b)
+  out = tf.math.multiply(a, b)
   return out
 
 
 def tfe_notrace_fn(t):
   out = _nontrace_mul(t, t)
-  result = tf.reduce_sum(out)
+  result = tf.math.reduce_sum(out)
   return result
 
 

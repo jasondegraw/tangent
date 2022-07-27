@@ -98,6 +98,7 @@ class CFG(gast.NodeVisitor):
     """
     if not isinstance(node, gast.FunctionDef):
       raise TypeError('input must be a function definition')
+    node.type_comment = None
     cfg = cls()
     cfg.entry = Node(node.args)
     cfg.head = [cfg.entry]
@@ -239,7 +240,9 @@ def forward(node, analysis):
     raise TypeError('not a valid forward analysis object')
   for succ in gast.walk(node):
     if isinstance(succ, gast.FunctionDef):
+      node.type_comment = None
       cfg_obj = CFG.build_cfg(succ)
+      cfg_obj.type_comment = None
       analysis.visit(cfg_obj.entry)
   return node
 

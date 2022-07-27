@@ -93,12 +93,14 @@ def compile_function(node, globals_=None):
   if isinstance(node, gast.Module):
     for succ in node.body:
       if isinstance(succ, gast.FunctionDef):
+        succ.type_comment = None
         name = succ.name
         break
     else:
       raise ValueError('no function found')
   elif isinstance(node, gast.FunctionDef):
     name = node.name
+    node.type_comment = None
   else:
     raise TypeError
   module = compile_file(node, globals_)

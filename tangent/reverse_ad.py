@@ -202,6 +202,7 @@ class ReverseAD(object):
   def visit_FunctionDef(self, node):
     # Construct a namer to guarantee we create unique names that don't
     # override existing names
+    node.type_comment = None
     self.namer = naming.Namer.build(node)
 
     # Check that this function has exactly one return statement at the end
@@ -257,7 +258,7 @@ class ReverseAD(object):
     if isinstance(y, gast.Tuple):
       y = y.elts[0]
     dy = gast.Name(id=self.namer.grad(y.id), ctx=gast.Param(),
-                   annotation=None)
+                   annotation=None, type_comment=None)
 
     if self.check_dims:
 
@@ -277,6 +278,9 @@ class ReverseAD(object):
     adjoint.args.args.extend([self.stack, dy])
     adjoint.args.args.extend(node.args.args[1:])
     adjoint.name = naming.adjoint_name(func, self.wrt)
+    adjoint.type_comment = None
+
+    node.type_comment = None
 
     return node, adjoint
 
@@ -591,7 +595,7 @@ class ReverseAD(object):
                                namer=self.namer, x=node, y=self.target)
     return node, adjoint
 
-  def visit_Num(self, node):
+  def visit_Constant(self, node):
     return node, []
 
   def visit_Tuple(self, node):
@@ -604,7 +608,7 @@ class ReverseAD(object):
     adjoint = []
     for i, elt in enumerate(node.elts):
       adjoint.append(template.replace('d[x] = d[t[i]]', namer=self.namer,
-                                      t=self.target, i=gast.Num(n=i), x=elt))
+                                      t=self.target, i=gast.Constant(value=i, kind=float), x=elt))
     return node, adjoint
 
   def visit_Pass(self, node):
@@ -719,7 +723,7 @@ class ReverseAD(object):
 
       pri_name = naming.primal_name(func, active_args)
       pri_call = gast.Call(
-          func=gast.Name(id=pri_name, ctx=gast.Load(), annotation=None),
+          func=gast.Name(id=pri_name, ctx=gast.Load(), annotation=None, type_comment=None),
           args=[self.substack] + node.args,
           keywords=node.keywords)
       anno.setanno(pri_call, 'pri_call', True)
@@ -730,14 +734,14 @@ class ReverseAD(object):
       dx.ctx = gast.Store()
       adj_name = naming.adjoint_name(func, active_args)
       adj_call = gast.Call(
-          func=gast.Name(id=adj_name, ctx=gast.Load(), annotation=None),
+          func=gast.Name(id=adj_name, ctx=gast.Load(), annotation=None, type_comment=None),
           args=[self.substack, dy] + node.args,
           keywords=node.keywords)
       anno.setanno(adj_call, 'adj_call', True)
       adjoint = [template.replace('dxs = dfx', namer=self.namer, dfx=adj_call)]
       for j, i in enumerate(active_args):
         adjoint.append(template.replace('d[x] = dxs[i]', namer=self.namer,
-                                        x=node.args[i].id, i=gast.Num(n=j)))
+                                        x=node.args[i].id, i=gast.Constant(value=j, kind=float)))
       return pri_call, adjoint
 
     # We have a template for the gradient that we need to fill in
@@ -770,7 +774,7 @@ class ReverseAD(object):
     if flags & inspect.CO_VARARGS:
       to_pack = node.args[six.get_function_code(template_).co_argcount - 1:]
       vararg_name = six.get_function_code(template_).co_varnames[-1]
-      target = gast.Name(annotation=None, id=vararg_name, ctx=gast.Store())
+      target = gast.Name(annotation=None, id=vararg_name, ctx=gast.Store(), type_comment=None)
       value = gast.Tuple(elts=to_pack, ctx=gast.Load())
       packing = [gast.Assign(targets=[target], value=value)]
 
@@ -845,7 +849,7 @@ def reverse_ad(node, wrt, preserve_result, check_dims):
 
   ad = ReverseAD(wrt, preserve_result, check_dims)
   pri, adj = ad.visit(node)
-  mod = gast.Module(body=[pri, adj])
+  mod = gast.Module(body=[pri, adj], type_ignores=None)
   mod = annotate.find_stacks(mod)
   return mod, ad.required, ad.stack
 
@@ -957,7 +961,7 @@ def joint(node):
   body = node.body[0].body[:-1] + node.body[1].body
   func = gast.Module(body=[gast.FunctionDef(
       name=node.body[0].name, args=node.body[1].args, body=body,
-      decorator_list=[], returns=None)])
+      decorator_list=[], returns=None, type_comment=None)], type_ignores=None)
   # Clean up
   anno.clearanno(func)
   return func

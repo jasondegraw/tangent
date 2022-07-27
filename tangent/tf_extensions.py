@@ -31,6 +31,7 @@ from tangent.utils import register_shape_function
 from tangent.utils import register_unbroadcast
 from tangent.utils import register_unreduce
 import tensorflow as tf
+import tensorflow_probability as tfp
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import resource_variable_ops
 
@@ -57,7 +58,7 @@ register_shape_function(resource_variable_ops.ResourceVariable, shape_as_list)
 
 
 non_differentiable.register_non_differentiable_functions(
-    tf.shape, tf.to_float, tf.equal, tf.constant,
+    tf.shape, tf.cast, tf.equal, tf.constant,
     tf.zeros, tf.ones, tf.zeros_like, tf.ones_like,
     size, shape_as_list, dtype)
 
@@ -67,7 +68,7 @@ register_init_grad(resource_variable_ops.ResourceVariable, tf.zeros_like)
 
 
 register_all_add_grad(
-    tf.add, (ops.EagerTensor, resource_variable_ops.ResourceVariable))
+    tf.math.add, (ops.EagerTensor, resource_variable_ops.ResourceVariable))
 
 register_all_shape_checker(
     tensor_shapes_match,
@@ -172,40 +173,40 @@ def matmul_adjoint_y(dz, x, y, transpose_a, transpose_b):
 #
 
 
-@adjoint(tf.exp)
+@adjoint(tf.math.exp)
 def dtfexp(y, x):
   d[x] = y * d[y]
 
 
-@adjoint(tf.log)
+@adjoint(tf.math.log)
 def dtflog(y, x):
   d[x] = d[y] / x
 
 
-@adjoint(tf.tanh)
+@adjoint(tf.math.tanh)
 def dtftanh(y, x):
   d[x] = d[y] * (1 - (y * y))
 
 
-@adjoint(tf.cosh)
+@adjoint(tf.math.cosh)
 def dtfcosh(y, x):
-  d[x] = d[y] * tf.sinh(x)
+  d[x] = d[y] * tf.math.sinh(x)
 
 
-@adjoint(tf.sinh)
+@adjoint(tf.math.sinh)
 def dtfsinh(y, x):
-  d[x] = d[y] * tf.cosh(x)
+  d[x] = d[y] * tf.math.cosh(x)
 
 
-@adjoint(tf.rsqrt)
+@adjoint(tf.math.rsqrt)
 def drsqrt(y, x):
-  d[x] = -0.5 * d[y] * tf.pow(tf.conj(y), tf.constant(3.0))
+  d[x] = -0.5 * d[y] * tf.math.pow(tf.math.conj(y), tf.constant(3.0))
 
 
-@adjoint(tf.negative)
+@adjoint(tf.math.negative)
 def dtfnegative(y, x):
   # TODO: Remove the unbroadcast.
-  d[x] = tangent.unbroadcast_tensor(tf.negative(d[y]), x)
+  d[x] = tangent.unbroadcast_tensor(tf.math.negative(d[y]), x)
 
 
 @adjoint(tf.expand_dims)
@@ -223,60 +224,60 @@ def dtfreshape(y, x, shape):
   d[x] = tf.reshape(d[y], tf.shape(x))
 
 
-@adjoint(tf.reduce_sum)
+@adjoint(tf.math.reduce_sum)
 def dtfreduce_sum(y, x, axis=None, keep_dims=False):
   # TODO: We may be able to assume unreduce_tensor works throughout.
   d[x] = tangent.unreduce(d[y], tangent.shape_as_list(x), axis, keep_dims)
 
 
-@adjoint(tf.reduce_mean)
+@adjoint(tf.math.reduce_mean)
 def dtfreduce_mean(y, x, axis=None, keep_dims=False):
   n = tf.constant(float(tangent.size(x, axis)))
-  d[x] = tf.divide(
+  d[x] = tf.math.divide(
       tangent.unreduce(d[y], tangent.shape_as_list(x), axis, keep_dims), n)
 
 
 @adjoint(tf.reduce_max)
 def dtfreduce_max(y, x, axis=None, keep_dims=False):
-  mask = tf.to_float(
+  mask = tf.cast(
       tf.equal(
-          tangent.unreduce(y, tangent.shape_as_list(x), axis, keep_dims), x))
+          tangent.unreduce(y, tangent.shape_as_list(x), axis, keep_dims), x), tf.float)
   d[x] = tf.multiply(
       tangent.unreduce(d[y], tangent.shape_as_list(x), axis, keep_dims), mask)
 
 
-@adjoint(tf.add)
+@adjoint(tf.math.add)
 def dtfadd(z, x, y):
   d[x] = tangent.unbroadcast(d[z], x)
   d[y] = tangent.unbroadcast(d[z], y)
 
 
-@adjoint(tf.subtract)
+@adjoint(tf.math.subtract)
 def dtfsubtract(z, x, y):
   d[x] = tangent.unbroadcast(d[z], x)
-  d[y] = tangent.unbroadcast(tf.negative(d[z]), y)
+  d[y] = tangent.unbroadcast(tf.math.negative(d[z]), y)
 
 
-@adjoint(tf.multiply)
+@adjoint(tf.math.multiply)
 def dtfmultiply(z, x, y):
-  d[x] = tangent.unbroadcast(tf.multiply(d[z], y), x)
-  d[y] = tangent.unbroadcast(tf.multiply(d[z], x), y)
+  d[x] = tangent.unbroadcast(tf.math.multiply(d[z], y), x)
+  d[y] = tangent.unbroadcast(tf.math.multiply(d[z], x), y)
 
 
 @adjoint(tf.divide)
 def dtfdivide(z, x, y):
-  d[x] = tangent.unbroadcast(tf.divide(d[z], y), x)
+  d[x] = tangent.unbroadcast(tf.math.divide(d[z], y), x)
   d[y] = tangent.unbroadcast(
-      tf.negative(tf.divide(tf.multiply(d[z], x), tf.multiply(y, y))), y)
+      tf.math.negative(tf.math.divide(tf.math.multiply(d[z], x), tf.math.multiply(y, y))), y)
 
 
-@adjoint(tf.maximum)
+@adjoint(tf.math.maximum)
 def dtfmaximum(z, x, y):
-  d[x] = tf.multiply(d[z], tf.to_float(tf.equal(z, x)))
-  d[y] = tf.multiply(d[z], tf.to_float(tf.equal(z, y)))
+  d[x] = tf.math.multiply(d[z], tf.cast(tf.equal(z, x)), tf.float)
+  d[y] = tf.math.multiply(d[z], tf.cast(tf.equal(z, y)), tf.float)
 
 
-@adjoint(tf.squared_difference)
+@adjoint(tf.math.squared_difference)
 def dtfsquared_difference(z, x, y):
   d[x] = tangent.unbroadcast(2 * d[z] * (x - y), x)
   d[y] = tangent.unbroadcast(2 * d[z] * (y - x), y)
@@ -288,24 +289,24 @@ def dtfmatmul(z, x, y, transpose_a=False, transpose_b=False):
   d[y] = tangent.matmul_adjoint_y(d[z], x, y, transpose_a, transpose_b)
 
 
-@adjoint(tf.nn.conv2d)
+@adjoint(tf.compat.v1.nn.conv2d)
 def dtfconv2d(z, x, y, strides, padding):
-  d[x] = tf.nn.conv2d_backprop_input(tf.shape(x), y, d[z], strides, padding)
-  d[y] = tf.nn.conv2d_backprop_filter(x, tf.shape(y), d[z], strides, padding)
+  d[x] = tf.compat.v1.nn.conv2d_backprop_input(tf.shape(x), y, d[z], strides, padding)
+  d[y] = tf.compat.v1.nn.conv2d_backprop_filter(x, tf.shape(y), d[z], strides, padding)
 
 
-@adjoint(tf.nn.conv2d_backprop_input)
+@adjoint(tf.compat.v1.nn.conv2d_backprop_input)
 def dtfconv2d_backprop_input(z, shape, x, y, strides, padding):
   # TODO: Add tests.
-  d[x] = tf.nn.conv2d_backprop_filter(d[z], shape, y, strides, padding)
-  d[y] = tf.nn.conv2d(d[z], x, strides, padding)
+  d[x] = tf.compat.v1.nn.conv2d_backprop_filter(d[z], shape, y, strides, padding)
+  d[y] = tf.compat.v1.nn.conv2d(d[z], x, strides, padding)
 
 
-@adjoint(tf.nn.conv2d_backprop_filter)
+@adjoint(tf.compat.v1.nn.conv2d_backprop_filter)
 def dtfconv2d_backprop_filter(z, x, shape, y, strides, padding):
   # TODO: Add tests.
-  d[x] = tf.nn.conv2d_backprop_input(shape, d[z], y, strides, padding)
-  d[y] = tf.nn.conv2d(x, d[z], strides, padding)
+  d[x] = tf.compat.v1.nn.conv2d_backprop_input(shape, d[z], y, strides, padding)
+  d[y] = tf.compat.v1.nn.conv2d(x, d[z], strides, padding)
 
 
 @adjoint(tf.nn.avg_pool)
@@ -332,30 +333,30 @@ def tshape_as_list(y, x):
   d[y] = tangent.shape_as_list(d[x])
 
 
-@tangent_(tf.exp)
+@tangent_(tf.math.exp)
 def ttfexp(y, x):
   d[y] = d[x] * y
 
 
-@tangent_(tf.log)
+@tangent_(tf.math.log)
 def ttflog(y, x):
   d[y] = d[x] / x
 
 
-@tangent_(tf.tanh)
+@tangent_(tf.math.tanh)
 def ttftanh(y, x):
-  cx = tf.cosh(x)
+  cx = tf.math.cosh(x)
   d[y] = d[x] / (cx * cx)
 
 
-@tangent_(tf.cosh)
+@tangent_(tf.math.cosh)
 def ttfcosh(y, x):
-  d[y] = d[x] * tf.sinh(x)
+  d[y] = d[x] * tf.math.sinh(x)
 
 
-@tangent_(tf.sinh)
+@tangent_(tf.math.sinh)
 def ttfsinh(y, x):
-  d[y] = d[x] * tf.cosh(x)
+  d[y] = d[x] * tf.math.cosh(x)
 
 
 @tangent_(tf.expand_dims)
@@ -373,55 +374,55 @@ def ttfreshape(y, x, shape):
   d[y] = tf.reshape(d[x], shape)
 
 
-@tangent_(tf.reduce_sum)
+@tangent_(tf.math.reduce_sum)
 def ttfreduce_sum(y, x, axis=None, keep_dims=False):
-  d[y] = tf.reduce_sum(d[x], axis, keep_dims)
+  d[y] = tf.math.reduce_sum(d[x], axis, keep_dims)
 
 
-@tangent_(tf.reduce_mean)
+@tangent_(tf.math.reduce_mean)
 def ttfreduce_mean(y, x, axis=None, keep_dims=False):
-  d[y] = tf.reduce_mean(d[x], axis, keep_dims)
+  d[y] = tf.math.reduce_mean(d[x], axis, keep_dims)
 
 
-@tangent_(tf.reduce_max)
+@tangent_(tf.math.reduce_max)
 def ttfreduce_max(y, x, axis=None, keep_dims=False):
-  mask = tf.to_float(
+  mask = tf.cast(
       tf.equal(
           tangent.unreduce(
-              tf.ones_like(y), tangent.shape_as_list(x), axis, keep_dims), x))
-  d[y] = tf.multiply(d[x], mask)
+              tf.ones_like(y), tangent.shape_as_list(x), axis, keep_dims), x), tf.float)
+  d[y] = tf.math.multiply(d[x], mask)
 
 
-@tangent_(tf.negative)
+@tangent_(tf.math.negative)
 def ttfnegative(y, x):
-  d[y] = tf.negative(d[x])
+  d[y] = tf.math.negative(d[x])
 
 
-@tangent_(tf.add)
+@tangent_(tf.math.add)
 def ttfadd(z, x, y):
-  d[z] = tf.add(d[x], d[y])
+  d[z] = tf.math.add(d[x], d[y])
 
 
-@tangent_(tf.subtract)
+@tangent_(tf.math.subtract)
 def ttfsubtract(z, x, y):
-  d[z] = tf.subtract(d[x], d[y])
+  d[z] = tf.math.subtract(d[x], d[y])
 
 
-@tangent_(tf.multiply)
+@tangent_(tf.math.multiply)
 def ttfmultiply(z, x, y):
-  d[z] = tf.add(tf.multiply(d[x], y), tf.multiply(x, d[y]))
+  d[z] = tf.math.add(tf.math.multiply(d[x], y), tf.math.multiply(x, d[y]))
 
 
-@tangent_(tf.divide)
+@tangent_(tf.math.divide)
 def ttfdivide(z, x, y):
-  d[z] = tf.divide(
-          tf.subtract(tf.multiply(d[x], y), tf.multiply(x, d[y])),
-          tf.multiply(y, y))
+  d[z] = tf.math.divide(
+          tf.math.subtract(tf.math.multiply(d[x], y), tf.math.multiply(x, d[y])),
+          tf.math.multiply(y, y))
 
 
-@tangent_(tf.maximum)
+@tangent_(tf.math.maximum)
 def ttfmaximum(z, x, y):
-  d[z] = d[x] * tf.to_float(tf.equal(z, x)) + d[y] * tf.to_float(tf.equal(z, y))
+  d[z] = d[x] * tf.cast(tf.equal(z, x), tf.float) + d[y] * tf.cast(tf.math.equal(z, y), tf.float)
 
 
 @tangent_(tf.nn.avg_pool)
@@ -444,11 +445,11 @@ def tshape(y, x):
 #
 
 grads.UNIMPLEMENTED_ADJOINTS.update(
-    grads.get_module_functions((tf, tf.distributions, tf.image, tf.layers,
+    grads.get_module_functions((tf, tfp.distributions, tf.image, tf.layers,
                                 tf.linalg, tf.losses,
                                 tf.nn)) - set(grads.adjoints))
 
 tangents.UNIMPLEMENTED_TANGENTS.update(
-    grads.get_module_functions((tf, tf.distributions, tf.image, tf.layers,
+    grads.get_module_functions((tf, tfp.distributions, tf.image, tf.layers,
                                 tf.linalg, tf.losses,
                                 tf.nn)) - set(tangents.tangents))

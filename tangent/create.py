@@ -40,8 +40,13 @@ def create_grad(node, namer, tangent=False):
         Node has an `adjoint_var` annotation referring to the node it is an
         adjoint of.
   """
-  if not isinstance(node, (gast.Subscript, gast.Name, gast.Str)):
-    raise TypeError
+  if not isinstance(node, (gast.Subscript, gast.Name)):
+    if isinstance(node, gast.Constant):
+      if not node.kind == "str":
+        assert False, node.value
+        raise TypeError
+    else:
+      raise TypeError
 
   if anno.hasanno(node, 'temp_var'):
     return create_grad(anno.getanno(node, 'temp_var'), namer, tangent)
@@ -52,17 +57,17 @@ def create_grad(node, namer, tangent=False):
     varname = node.id
     name = namer.grad(varname, tangent)
     grad_node = gast.Name(
-        id=name, ctx=None, annotation=None)
+        id=name, ctx=None, annotation=None, type_comment=None)
     anno.setanno(grad_node, 'adjoint_var', node)
     return grad_node
   if isinstance(node, gast.Subscript):
     grad_node = create_grad(node.value, namer, tangent=tangent)
     grad_node.ctx = gast.Load()
     return gast.Subscript(value=grad_node, slice=node.slice, ctx=None)
-  elif isinstance(node, gast.Str):
+  elif isinstance(node, gast.Constant):
     grad_node = create_grad(
-        gast.Name(id=node.s, ctx=None, annotation=None), namer, tangent=tangent)
-    return gast.Str(grad_node.id)
+        gast.Name(id=node.value, ctx=None, annotation=None, type_comment=None), namer, tangent=tangent)
+    return gast.Constant(grad_node.id, kind="str")
   else:
     return _name_grad(node)
 
@@ -87,7 +92,7 @@ def create_temp_grad(node, namer, tangent=False):
 
   def _name_temp_grad(node):
     name = namer.temp_grad(node.id, tangent)
-    temp_node = gast.Name(id=name, annotation=None, ctx=None)
+    temp_node = gast.Name(id=name, annotation=None, ctx=None, type_comment=None)
     return temp_node
   if isinstance(node, gast.Subscript):
     temp_node = _name_temp_grad(node.value)
@@ -114,6 +119,6 @@ def create_temp(node, namer):
     name = node.value.id
   else:
     raise TypeError
-  temp_node = gast.Name(id=namer.temp(name), annotation=None, ctx=None)
+  temp_node = gast.Name(id=namer.temp(name), annotation=None, ctx=None, type_comment=None)
   anno.setanno(temp_node, 'temp_var', node)
   return temp_node

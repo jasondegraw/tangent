@@ -94,8 +94,11 @@ class LanguageFence(ast.NodeVisitor):
     self._visited_top_module = True
     self._allow_and_continue(node)
 
-  def visit_Num(self, node):
-    self._allow_and_continue(node)
+  def visit_Constant(self, node):
+    if isinstance(node.value, bytes):
+      self._reject(node, 'Byte Literals are not supported')
+    else:
+      self._allow_and_continue(node)
 
   def visit_Str(self, node):
     self._allow_and_continue(node)
@@ -105,9 +108,6 @@ class LanguageFence(ast.NodeVisitor):
 
   def visit_JoinedStr(self, node):
     self._reject(node, 'F-Strings are not supported')
-
-  def visit_Bytes(self, node):
-    self._reject(node, 'Byte Literals are not supported')
 
   def visit_List(self, node):
     self._allow_and_continue(node)
@@ -361,6 +361,7 @@ class LanguageFence(ast.NodeVisitor):
     self._allow_and_continue(node)
 
   def visit_FunctionDef(self, node):
+    node.type_comment = None
     self._allow_and_continue(node)
 
   def visit_Lambda(self, node):

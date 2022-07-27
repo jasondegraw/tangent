@@ -33,7 +33,7 @@ def test_variable_replace():
     x = 2
     return x
 
-  body = template.replace(f, x=gast.Name(id='y', ctx=None, annotation=None))
+  body = template.replace(f, x=gast.Name(id='y', ctx=None, annotation=None, type_comment=None))
   assert body[0].targets[0].id == 'y'
   assert isinstance(body[0].targets[0].ctx, gast.Store)
   assert isinstance(body[1].value.ctx, gast.Load)
@@ -44,7 +44,7 @@ def test_statement_replace():
   def f(body):
     body
 
-  body = [gast.Expr(value=gast.Name(id=var, ctx=gast.Load(), annotation=None))
+  body = [gast.Expr(value=gast.Name(id=var, ctx=gast.Load(), annotation=None, type_comment=None))
           for var in 'xy']
   new_body = template.replace(f, body=body)
   assert len(new_body) == 2
@@ -57,7 +57,7 @@ def test_function_replace():
     def f(args):
       pass
   body = template.replace(
-    f, f='g', args=[gast.Name(id=arg, ctx=None, annotation=None)
+    f, f='g', args=[gast.Name(id=arg, ctx=None, annotation=None, type_comment=None)
                     for arg in 'ab'])
   assert isinstance(body[0], gast.FunctionDef)
   assert body[0].name == 'g'

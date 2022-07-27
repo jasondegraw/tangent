@@ -42,6 +42,7 @@ class ResolveCalls(gast.NodeVisitor):
           (cell.cell_contents for cell in six.get_function_closure(func)))))
 
   def visit_FunctionDef(self, node):
+    node.type_comment = None
     self.generic_visit(node)
     anno.setanno(node, 'func', self.func)
 
@@ -58,6 +59,8 @@ class ResolveCalls(gast.NodeVisitor):
           # TODO: we should detect when tracing is a fallback.
           if hasattr(builtins, node.id):
             return getattr(builtins, node.id)
+          elif node.id == "_op":
+              return self.func
           else:
             raise AttributeError(
                 'Failed to resolve name "%s" used by "%s".'% (
@@ -144,7 +147,7 @@ class FindStackOps(gast.NodeVisitor):
         _, _, op_id_node = node.args
       elif fn_handle in [utils.pop, utils.pop_stack]:
         _, op_id_node = node.args
-      op_id = op_id_node.s
+      op_id = op_id_node.value
       if op_id not in self.push_pop_pairs:
         self.push_pop_pairs[op_id] = dict()
       assert fn_handle not in self.push_pop_pairs, (
@@ -198,7 +201,7 @@ class AnnotateStacks(gast.NodeVisitor):
       # Retrieve the op_id, e.g. val = tangent.pop(_stack,'abc')
       #                                                    ^^^
       _, op_id_node = node.value.args
-      op_id = op_id_node.s
+      op_id = op_id_node.value
       anno.setanno(node, 'pop_var', node.targets[0])
 
       if op_id not in self.push_pop_pairs:
@@ -229,7 +232,7 @@ class AnnotateStacks(gast.NodeVisitor):
     if isinstance(node.value, gast.Call):
       fn_handle = _get_stack_op_handle(node.value)
       if fn_handle and fn_handle in [utils.push, utils.push_stack]:
-        op_id = node.value.args[-1].s
+        op_id = node.value.args[-1].value
         anno.setanno(node, 'push_var', node.value.args[1])
         try:
           matching_pop = self.push_pop_pairs[op_id][self.fn_map[fn_handle]]

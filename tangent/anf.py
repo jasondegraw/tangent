@@ -65,12 +65,12 @@ class ANF(transformers.TreeTransformer):
       return node
     name = self.namer.name(node)
     stmt = gast.Assign(
-        targets=[gast.Name(annotation=None, id=name, ctx=gast.Store())],
+        targets=[gast.Name(annotation=None, id=name, ctx=gast.Store(), type_comment=None)],
         value=None)
     self.mark(stmt)
     self.prepend(stmt)
     stmt.value = self.visit(node)
-    return gast.Name(annotation=None, id=name, ctx=gast.Load())
+    return gast.Name(annotation=None, id=name, ctx=gast.Load(), type_comment=None)
 
   def visit_Call(self, node):
     if self.trivializing:
@@ -81,6 +81,7 @@ class ANF(transformers.TreeTransformer):
     return node
 
   def visit_FunctionDef(self, node):
+    node.type_comment = None
     self.namer = naming.Namer.build(node)
     return self.generic_visit(node)
 
@@ -106,18 +107,18 @@ class ANF(transformers.TreeTransformer):
   def trivialize_slice(self, node):
     if isinstance(node, gast.Slice):
       name = self.namer.name(node)
-      target = gast.Name(id=name, ctx=gast.Store(), annotation=None)
+      target = gast.Name(id=name, ctx=gast.Store(), annotation=None, type_comment=None)
       stmt = gast.Assign(targets=[target], value=None)
       self.prepend(stmt)
       stmt.value = gast.Call(
-          func=gast.Name(id='slice', ctx=gast.Load(), annotation=None),
+          func=gast.Name(id='slice', ctx=gast.Load(), annotation=None, type_comment=None),
           args=[
               self.trivialize(arg) if arg else
-              gast.Name(id='None', ctx=gast.Load(), annotation=None)
+              gast.Name(id='None', ctx=gast.Load(), annotation=None, type_comment=None)
               for arg in [node.lower, node.upper,
                           node.step]],
           keywords=[])
-      return gast.Name(id=name, ctx=gast.Load(), annotation=None)
+      return gast.Name(id=name, ctx=gast.Load(), annotation=None, type_comment=None)
     elif isinstance(node, gast.ExtSlice):
       name = self.namer.name(node)
       target = gast.Name(id=name, ctx=gast.Store(), annotation=None)
@@ -155,7 +156,7 @@ class ANF(transformers.TreeTransformer):
     self.namer.target = node.target
     right = self.trivialize(node.value)
     target = self.trivialize(node.target)
-    left = gast.Name(id=target.id, ctx=gast.Load(), annotation=None)
+    left = gast.Name(id=target.id, ctx=gast.Load(), annotation=None, type_comment=None)
     node = gast.Assign(targets=[target],
                        value=gast.BinOp(
                         left=left, op=node.op, right=right))
@@ -176,14 +177,14 @@ class ANF(transformers.TreeTransformer):
     elif isinstance(node.targets[0], gast.Tuple):
       node.value = self.visit(node.value)
       name = self.namer.name(node.targets[0])
-      target = gast.Name(id=name, ctx=gast.Store(), annotation=None)
+      target = gast.Name(id=name, ctx=gast.Store(), annotation=None, type_comment=None)
       for i, elt in enumerate(node.targets[0].elts):
         stmt = gast.Assign(
             targets=[elt],
             value=gast.Subscript(
                 value=gast.Name(id=name, ctx=gast.Load(),
-                                annotation=None),
-                slice=gast.Index(value=gast.Num(n=i)),
+                                annotation=None, type_comment=None),
+                slice=gast.Index(value=gast.Constant(n=i)),
                 ctx=gast.Load()))
         self.mark(stmt)
         self.append(stmt)

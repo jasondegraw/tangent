@@ -112,6 +112,7 @@ class ForwardAD(transformers.TreeTransformer):
     return False
 
   def visit_FunctionDef(self, node):
+    node.type_comment = None
     self.namer = naming.Namer.build(node)
 
     # Get the tangent of the body
@@ -277,7 +278,7 @@ class ForwardAD(transformers.TreeTransformer):
             gast.keyword(arg=arg_grad_node.id, value=grad_node))
       # Update the original call
       rhs = gast.Call(
-          func=gast.Name(id=fn_name, ctx=gast.Load(), annotation=None),
+          func=gast.Name(id=fn_name, ctx=gast.Load(), annotation=None, type_comment=None),
           args=node.args,
           keywords=tangent_keywords + node.keywords)
       # Set self.value to False to trigger whole primal replacement
@@ -312,7 +313,7 @@ class ForwardAD(transformers.TreeTransformer):
     if flags & inspect.CO_VARARGS:
       to_pack = node.args[six.get_function_code(template_).co_argcount - 1:]
       vararg_name = six.get_function_code(template_).co_varnames[-1]
-      target = gast.Name(annotation=None, id=vararg_name, ctx=gast.Store())
+      target = gast.Name(annotation=None, id=vararg_name, ctx=gast.Store(), type_comment=None)
       value = gast.Tuple(elts=to_pack, ctx=gast.Load())
 
       # And we fill in the packed tuple into the template
@@ -413,7 +414,7 @@ class ForwardAD(transformers.TreeTransformer):
         return [node] + tangent_node
     return node
 
-  def visit_Num(self, node):
+  def visit_Constant(self, node):
     """Tangent of e.g.
     x = 0"""
     if not self.target:
@@ -463,7 +464,7 @@ class ForwardAD(transformers.TreeTransformer):
         False: 'False',
         None: 'None',
     }[node.value]
-    new_node = gast.Name(id=constant_val,ctx=gast.Load(),annotation=None)
+    new_node = gast.Name(id=constant_val,ctx=gast.Load(),annotation=None, type_comment=None)
     return self.visit_Name(new_node)
 
   def visit_Attribute(self, node):
@@ -505,8 +506,8 @@ class ForwardAD(transformers.TreeTransformer):
         grad_node = create.create_grad(_node, self.namer, tangent=True)
         grad_node.ctx = node.ctx
         elts.append(grad_node)
-      elif isinstance(_node, gast.Num):
-        elts.append(gast.Num(0))
+      elif isinstance(_node, gast.Constant):
+        elts.append(gast.Constant(0, kind='float'))
       elif isinstance(_node, (gast.List, gast.Tuple)):
         elts.append(self.create_grad_list(_node.elts))
       else:
@@ -575,6 +576,7 @@ def forward_ad(node, wrt, preserve_result=False, check_dims=True):
     required: A list of tuples of functions and argument indices. These
         functions were called by the function but did not have an adjoint.
   """
+  node.type_comment = None
   if not isinstance(node, gast.FunctionDef):
     raise TypeError
 
@@ -590,7 +592,7 @@ def forward_ad(node, wrt, preserve_result=False, check_dims=True):
   node = annotate.find_stacks(node)
 
   # Clean up naive forward-mode fcode
-  node = gast.Module([node])
+  node = gast.Module([node], type_ignores=None)
   anno.clearanno(node)
 
   return node, fad.required

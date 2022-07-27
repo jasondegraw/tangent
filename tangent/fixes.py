@@ -91,7 +91,7 @@ class FixGrad(transformers.TreeTransformer):
     else:
       var = anno.getanno(node, 'temp_adjoint_var')
     return gast.Assign(
-        targets=[gast.Name(id=gradname, ctx=gast.Store(), annotation=None)],
+        targets=[gast.Name(id=gradname, ctx=gast.Store(), annotation=None, type_comment=None)],
         value=gast.Call(func=utils.INIT_GRAD, args=[var], keywords=[]))
 
   def prepend_uninitialized_grads(self, node):

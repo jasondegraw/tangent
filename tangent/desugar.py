@@ -29,6 +29,7 @@ from tangent import transformers
 class ExplicitLoopIndexes(transformers.TreeTransformer):
 
   def visit_FunctionDef(self, node):
+    node.type_comment = None
     cfg.forward(node, cfg.Active(range(len(node.args.args))))
     self.namer = naming.Namer.build(node)
     node = self.generic_visit(node)
@@ -69,7 +70,7 @@ class ExplicitLoopIndexes(transformers.TreeTransformer):
           x=old_iter,
           i=new_target)
 
-        node.target = gast.Name(id=new_target.id, ctx=gast.Store(), annotation=None)
+        node.target = gast.Name(id=new_target.id, ctx=gast.Store(), annotation=None, type_comment=None)
         node.iter = quoting.quote('range(len(%s))' % iter_name)
         anno.setanno(node.iter, 'func', range)
         anno.setanno(node.iter.args[0], 'func', len)

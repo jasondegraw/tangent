@@ -136,6 +136,7 @@ class Namer(object):
     """Construct a namer object for a given function scope."""
     if not isinstance(node, gast.FunctionDef):
       raise ValueError
+    node.type_comment = None
     namer = cls()
     namer.names.update(get_names(node))
     return namer
@@ -269,15 +270,15 @@ class Namer(object):
   def name_ExtSlice(self, node):
     return '_'.join(self._name(d) for d in node.dims)
 
-  def name_Num(self, node):
-    num_str = str(node.n)
-    num_str = num_str.replace('.', '_')
-    num_str = num_str.replace('-', 'neg')
-    num_str = num_str.replace('+', 'plus')
-    return num_str
-
-  def name_Str(self, node):
-    return node.s
+  def name_Constant(self, node):
+    if not type(node.value) == "str":
+      num_str = str(node.value)
+      num_str = num_str.replace('.', '_')
+      num_str = num_str.replace('-', 'neg')
+      num_str = num_str.replace('+', 'plus')
+      return num_str
+    else:
+      return node.value
 
   BINOP_NAMES = {
       gast.Add: 'plus',

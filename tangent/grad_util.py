@@ -139,7 +139,7 @@ def autodiff_tree(func, wrt, motion, mode, preserve_result, check_dims,
   namespace = {'tangent': tangent, 'numpy': numpy}
 
   done = set()
-  final = gast.Module(body=[])
+  final = gast.Module(body=[], type_ignores=None)
   namespace.update(six.get_function_globals(func))
 
   node, required = autodiff_ast(func, wrt, motion, mode, preserve_result,

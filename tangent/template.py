@@ -53,12 +53,14 @@ class ReplaceTransformer(gast.NodeTransformer):
     return node
 
   def visit_FunctionDef(self, node):
+    node.type_comment = None
     node = self.generic_visit(node)
     if node.name in self.replacements:
       node.name = self.replacements[node.name].id
     return node
 
   def visit_Name(self, node):
+    node.type_comment = None
     if node.id in self.replacements:
       # NOTE In principle we don't want to copy, because it might break
       # references held in annotations, but we will copy if we have to to
@@ -74,6 +76,7 @@ class ReplaceTransformer(gast.NodeTransformer):
         anno.setanno(new_node, 'replacement', node, safe=False)
         if 'ctx' in new_node._fields:
           new_node.ctx = node.ctx
+        new_node.type_comment = None
       if len(new_nodes) == 1:
         new_nodes, = new_nodes
       return new_nodes
@@ -114,15 +117,15 @@ class ReplaceGradTransformer(transformers.TreeTransformer):
     super(ReplaceGradTransformer, self).__init__()
 
   def visit_Subscript(self, node):
-    if isinstance(node.value, (gast.Name, gast.Num)) and node.value.id == 'd':
+    if isinstance(node.value, (gast.Name, gast.Constant)) and node.value.id == 'd':
       if (not isinstance(node.slice, gast.Index) or
           not isinstance(node.slice.value,
-                         (gast.Subscript, gast.Name, gast.Str))):
+                         (gast.Subscript, gast.Name))):
         # This happens when the gradient of a constant is taken
         if self.replace_grad == Replace.TANGENT:
-          new_node = gast.Num(0)
+          new_node = gast.Constant(0, kind="float")
         else:
-          new_node = gast.Name(id='_', ctx=None, annotation=None)
+          new_node = gast.Name(id='_', ctx=None, annotation=None, type_comment=None)
           self.remove(new_node)
       elif (self.replace_grad in (Replace.FULL, Replace.TANGENT) or
             isinstance(node.ctx, gast.Load)):

@@ -178,53 +178,53 @@ class ConstantFolding(gast.NodeTransformer):
     self.generic_visit(node)
     left_val = node.left
     right_val = node.right
-    left_is_num = isinstance(left_val, gast.Num)
-    right_is_num = isinstance(right_val, gast.Num)
+    left_is_num = isinstance(left_val, gast.Constant)
+    right_is_num = isinstance(right_val, gast.Constant)
 
     if isinstance(node.op, gast.Mult):
       if left_is_num and right_is_num:
-        return gast.Num(left_val.n * right_val.n)
+        return gast.Constant(left_val.value * right_val.value, kind=float)
       if left_is_num:
-        if left_val.n == 0:
-          return gast.Num(0)
-        elif left_val.n == 1:
+        if left_val.value == 0:
+          return gast.Constant(0, kind=float)
+        elif left_val.value == 1:
           return right_val
       if right_is_num:
-        if right_val.n == 0:
-          return gast.Num(0)
-        elif right_val.n == 1:
+        if right_val.value == 0:
+          return gast.Constant(0, kind=float)
+        elif right_val.value == 1:
           return left_val
     elif isinstance(node.op, gast.Add):
       if left_is_num and right_is_num:
-        return gast.Num(left_val.n + right_val.n)
-      if left_is_num and left_val.n == 0:
+        return gast.Constant(left_val.value + right_val.value, kind=float)
+      if left_is_num and left_val.value == 0:
         return right_val
-      if right_is_num and right_val.n == 0:
+      if right_is_num and right_val.value == 0:
         return left_val
     elif isinstance(node.op, gast.Sub):
       if left_is_num and right_is_num:
-        return gast.Num(left_val.n - right_val.n)
-      if left_is_num and left_val.n == 0:
+        return gast.Constant(left_val.value - right_val.value, kind=float)
+      if left_is_num and left_val.value == 0:
         return gast.UnaryOp(op=gast.USub(), operand=right_val)
-      if right_is_num and right_val.n == 0:
+      if right_is_num and right_val.value == 0:
         return left_val
     elif isinstance(node.op, gast.Div):
       if left_is_num and right_is_num:
-        return gast.Num(left_val.n / right_val.n)
-      if right_is_num and right_val.n == 1:
+        return gast.Constant(left_val.value / right_val.value, kind=float)
+      if right_is_num and right_val.value == 1:
         return left_val
     elif isinstance(node.op, gast.Pow):
       if left_is_num and right_is_num:
-        return gast.Num(left_val.n ** right_val.n)
+        return gast.Constant(left_val.value ** right_val.value, kind=float)
       if left_is_num:
-        if left_val.n == 0:
-          return gast.Num(0)
-        elif left_val.n == 1:
-          return gast.Num(1)
+        if left_val.value == 0:
+          return gast.Constant(0, kind=float)
+        elif left_val.value == 1:
+          return gast.Constant(1, kind=float)
       if right_is_num:
-        if right_val.n == 0:
-          return gast.Num(1)
-        elif right_val.n == 1:
+        if right_val.value == 0:
+          return gast.Constant(1, kind=float)
+        elif right_val.value == 1:
           return left_val
     return node
 

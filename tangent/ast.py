@@ -98,6 +98,7 @@ class ArgAppend(gast.NodeTransformer):
     self.node_list = node_list
 
   def visit_FunctionDef(self, node):
+    node.type_comment = None
     if not self.visited:
       node.args.args.extend(self.node_list)
       self.visited = True
