@@ -1,3 +1,8 @@
+Removing Tensorflow from tangent. 
+
+
+--------
+
 # Tangent 
 
 [![Build Status](https://travis-ci.org/google/tangent.svg?branch=master)](https://travis-ci.org/google/tangent)
