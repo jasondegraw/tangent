@@ -21,7 +21,7 @@ from copy import copy
 import gast
 from tangent import annotations as anno
 from tangent import grammar
-
+from tangent import quoting
 
 class TreeTransformer(gast.NodeTransformer):
   """A transformer that allows for non-local changes.

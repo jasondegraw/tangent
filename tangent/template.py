@@ -118,8 +118,7 @@ class ReplaceGradTransformer(transformers.TreeTransformer):
 
   def visit_Subscript(self, node):
     if isinstance(node.value, (gast.Name, gast.Constant)) and node.value.id == 'd':
-      if (not isinstance(node.slice, gast.Index) or
-          not isinstance(node.slice.value,
+      if (not isinstance(node.slice,
                          (gast.Subscript, gast.Name))):
         # This happens when the gradient of a constant is taken
         if self.replace_grad == Replace.TANGENT:
@@ -129,10 +128,10 @@ class ReplaceGradTransformer(transformers.TreeTransformer):
           self.remove(new_node)
       elif (self.replace_grad in (Replace.FULL, Replace.TANGENT) or
             isinstance(node.ctx, gast.Load)):
-        new_node = create.create_grad(node.slice.value, self.namer,
+        new_node = create.create_grad(node.slice, self.namer,
                                       self.tangent)
       elif isinstance(node.ctx, gast.Store):
-        new_node = create.create_temp_grad(node.slice.value, self.namer,
+        new_node = create.create_temp_grad(node.slice, self.namer,
                                            self.tangent)
       else:
         raise ValueError
