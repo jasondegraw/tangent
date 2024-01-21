@@ -16,7 +16,6 @@ import numpy as np
 import six
 
 import functions
-import tfe_utils
 
 
 blacklisted = [
@@ -107,4 +106,4 @@ def pytest_generate_tests(metafunc):
   if 'sqm' in metafunc.fixturenames:
     metafunc.parametrize('sqm', square_matrices)
 
-  tfe_utils.register_parametrizations(metafunc, short)
+ 

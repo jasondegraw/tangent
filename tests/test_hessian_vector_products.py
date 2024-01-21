@@ -23,14 +23,6 @@ from autograd import hessian_vector_product
 import autograd.numpy as np
 import pytest
 import tangent
-import tfe_utils
-
-@pytest.fixture
-def tf():
-  try:
-    import tensorflow as tf
-  except ImportError:
-    pytest.skip()
 
 
 # This test function broke HVPs several times

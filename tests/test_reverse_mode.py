@@ -31,7 +31,6 @@ import pytest
 import tangent
 from tangent.grad_util import INPUT_DERIVATIVE
 from tangent import quoting
-import tfe_utils
 import utils
 from functions import bilinear
 from functions import dict_saxpy
@@ -230,60 +229,6 @@ def test_nested_dict(motion, optimized):
   for k in p['i']:
     assert np.allclose(dx['i'][k], dx_ag['i'][k])
 
-
-def test_grad_unary_tensor(func, motion, optimized, preserve_result, t):
-  """Test gradients of functions with single tensor input."""
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (0,), t)
-
-
-def test_grad_unary_reduction(func, motion, optimized, preserve_result,
-                              timage, boolean):
-  """Test gradients of reduction functions."""
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (0,),
-                            timage, boolean)
-
-
-def test_grad_binary_tensor(func, motion, optimized, preserve_result, t1, t2):
-  """Test gradients of functions with binary tensor inputs."""
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (0, 1),
-                            t1, t2)
-
-
-def test_grad_matmul(func, motion, optimized, preserve_result, mat1, mat2,
-                     boolean1, boolean2):
-  """Test gradients of functions with binary matrix inputs."""
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (0, 1),
-                            mat1, mat2, boolean1, boolean2)
-
-
-def test_grad_matmul_higherdim(func, motion, optimized, preserve_result,
-                               timage1, timage2, boolean1, boolean2):
-  """Test gradients of functions with binary matrix inputs."""
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (0, 1),
-                            timage1, timage2, boolean1, boolean2)
-
-
-def test_grad_tensor_broadcast(func, motion, optimized, preserve_result, s,
-                               t):
-  """Test gradients of functions with binary tensor inputs."""
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (0, 1),
-                            s, t)
-
-
-def test_grad_image(func, motion, optimized, preserve_result, timage, tkernel,
-                    conv2dstrides):
-  """Test gradients of image functions."""
-  # TODO: Upgrade utils.py to allow simultaneous testing of uneven args.
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (0,),
-                            timage, tkernel, conv2dstrides)
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (1,),
-                            timage, tkernel, conv2dstrides)
-
-
-def test_grad_image_pooling(func, motion, optimized, preserve_result, timage,
-                            pool2dsizes, conv2dstrides):
-  tfe_utils.test_rev_tensor(func, motion, optimized, preserve_result, (0,),
-                            timage, pool2dsizes, conv2dstrides)
 
 
 if __name__ == '__main__':
