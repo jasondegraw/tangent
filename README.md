@@ -1,12 +1,9 @@
-Removing Tensorflow from tangent. 
+This is a version of the awesome Tangent library from Google. I was able to get it working on Python 3.10 and removed all the TensorFlow. 
 
 
 --------
 
 # Tangent 
-
-[![Build Status](https://travis-ci.org/google/tangent.svg?branch=master)](https://travis-ci.org/google/tangent)
-[![Join the chat at https://gitter.im/google/tangent](https://badges.gitter.im/google/tangent.svg)](https://gitter.im/google/tangent?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Tangent is a new, free, and open-source Python library for automatic differentiation.  
 
@@ -59,22 +56,6 @@ Under the hood, `tangent.grad` grabs the source code of the Python function you 
 
 Tangent has a library of recipes for the derivatives of basic arithmetic (`+`,`-`,`/`,`**`,`*`), pieces of syntax (`ast.For`, `ast.If`, `ast.While`) and TensorFlow Eager functions (`tf.reduce_sum`, `tf.exp`, `tf.matmul`, ... ). For each piece of syntax it encounters (for example, `c = a + b` is a single AST node `ast.Assign`), `tangent.grad` looks up the matching backward-pass recipe, and adds it to the end of the derivative function.
 This reverse-order processing gives the technique its name: reverse-mode automatic differentiation.
-
-### TF Eager
-
-Tangent supports differentiating functions that use TensorFlow Eager functions that are composed together.
-
-```python
-def f(W,x):
-  h1 = tf.matmul(x,W)
-  h2 = tf.tanh(h1)
-  out = tf.reduce_sum(h2)
-  return out
-
-dfdW = tangent.grad(f)
-```
-
-![SCT on TF Eager](docs/sct-ad-tf.gif "SCT on TF Eager")
 
 
 ### Subroutines
