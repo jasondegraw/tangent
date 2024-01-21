@@ -129,15 +129,15 @@ class ANF(transformers.TreeTransformer):
           gast.Name(id=n, ctx=gast.Load(), annotation=None)
           for n in dim_names], ctx=gast.Load())
       return gast.Name(id=name, ctx=gast.Load(), annotation=None)
-    elif isinstance(node, gast.Index):
-      return self.trivialize(node.value)
-    else:
-      raise ValueError(node)
+    else: #isinstance(node, gast.Index):
+      return node
+    #else:
+      #raise ValueError(node)
 
   def visit_Subscript(self, node):
     if self.trivializing:
       node.value = self.trivialize(node.value)
-      node.slice = gast.Index(value=self.trivialize_slice(node.slice))
+      node.slice = self.trivialize_slice(node.slice)
     return node
 
   def visit_Tuple(self, node):

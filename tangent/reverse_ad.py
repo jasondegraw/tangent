@@ -555,9 +555,9 @@ class ReverseAD(object):
     # If the LHS is a subscript assignment with variable index, we need to
     # store and restore that as well
     if (isinstance(self.orig_target, gast.Subscript) and
-        isinstance(self.orig_target.slice.value, gast.Name)):
+        isinstance(self.orig_target.slice, gast.Name)):
       push, pop, op_id = get_push_pop()
-      i = self.orig_target.slice.value
+      i = self.orig_target.slice
       push_index = template.replace(
           'push(_stack, i, op_id)',
           push=push,
@@ -587,7 +587,7 @@ class ReverseAD(object):
   def visit_Subscript(self, node):
     adjoint = template.replace('d[x[i]] = d[y]', namer=self.namer,
                                y=self.target, x=node.value,
-                               i=node.slice.value)
+                               i=node.slice)
     return node, adjoint
 
   def visit_Name(self, node):
