@@ -1,5 +1,6 @@
 This is a version of the awesome Tangent library from Google. I was able to get it working on Python 3.10 and removed all the TensorFlow. 
 
+Props to Alex Wiltschko, Bart van Merrienboer and Dan Moldovan. This library is super impressive. 
 
 --------
 
